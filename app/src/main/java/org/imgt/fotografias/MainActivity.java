@@ -2,9 +2,12 @@ package org.imgt.fotografias;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Environment;
 import android.provider.MediaStore;
@@ -18,6 +21,7 @@ import android.widget.ImageView;
 import android.widget.Toast;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -35,6 +39,9 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        lugar= new Lugar("");
+        imageView= (ImageView) findViewById(R.id.foto);
 
         logocamara = findViewById(R.id.camara);
         logocamara.setOnClickListener(new View.OnClickListener(){
@@ -59,9 +66,7 @@ public class MainActivity extends AppCompatActivity {
                 eliminarFoto(null);
             }
         });
-        
-        lugar= new Lugar("");
-        imageView= (ImageView) findViewById(R.id.foto);
+
         actualizarVistas();
     }
 
@@ -115,7 +120,8 @@ public class MainActivity extends AppCompatActivity {
 
     protected void ponerFoto(ImageView imageView, String uri){
         if(uri !=null && !uri.isEmpty() && !uri.equals("null")){
-            imageView.setImageURI(Uri.parse(uri));
+            //imageView.setImageURI(Uri.parse(uri));
+            imageView.setImageBitmap(reduceBitmap(this, uri, 1024, 1024));
         }else{
             imageView.setImageBitmap(null);
         }
@@ -130,6 +136,27 @@ public class MainActivity extends AppCompatActivity {
 
     protected void actualizarVistas(){
         ponerFoto(imageView, lugar.getFoto());
+    }
+
+    public static Bitmap reduceBitmap(Context contexto, String uri,
+                                      int maxAncho, int maxAlto) {
+        try {
+            final BitmapFactory.Options options = new BitmapFactory.Options();
+            options.inJustDecodeBounds = true;
+            BitmapFactory.decodeStream(contexto.getContentResolver()
+                    .openInputStream(Uri.parse(uri)), null, options);
+            options.inSampleSize = (int) Math.max(
+                    Math.ceil(options.outWidth / maxAncho),
+                    Math.ceil(options.outHeight / maxAlto));
+            options.inJustDecodeBounds = false;
+            return BitmapFactory.decodeStream(contexto.getContentResolver()
+                    .openInputStream(Uri.parse(uri)), null, options);
+        } catch (FileNotFoundException e) {
+            Toast.makeText(contexto, "Fichero/recurso no encontrado",
+                    Toast.LENGTH_LONG).show();
+            e.printStackTrace();
+            return null;
+        }
     }
 
     public static void solicitarPermiso(final String permiso, String
